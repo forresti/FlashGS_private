@@ -1,7 +1,7 @@
 import time
 import torch
 import flash_gaussian_splatting
-
+import time
 
 class Scene:
     def __init__(self, device):
@@ -27,9 +27,12 @@ class Camera:
         self.width = 1957
         self.height = 1091
         self.position = torch.empty(3)
-        self.position[0] = 3.3989622700470066
-        self.position[1] = 0.6835340434263679
-        self.position[2] = -2.2991544105562696
+        # self.position[0] = 3.3989622700470066
+        self.position[0] = 3
+        # self.position[1] = 0.6835340434263679
+        self.position[1] = -.5  # up and down?
+        # self.position[2] = -2.2991544105562696
+        self.position[2] = 0
         self.rotation = torch.empty((3, 3))
         self.rotation[0, 0] = 0.7861880261556364
         self.rotation[0, 1] = -0.01644204414928749
@@ -68,6 +71,8 @@ class Rasterizer:
 
     # 前向传播（应用层封装）
     def forward(self, scene, camera, bg_color):
+        self.curr_offset[0] = 0
+
         # 属性预处理 + 键值绑定
         flash_gaussian_splatting.ops.preprocess(scene.position, scene.shs, scene.opacity, scene.cov3d,
                                     camera.width, camera.height, 32, 16,
@@ -79,8 +84,8 @@ class Rasterizer:
         
         # 键值对数量判断 + 处理键值对过多的异常情况
         num_rendered = int(self.curr_offset.cpu()[0])
-        print(num_rendered)
         if num_rendered >= MAX_NUM_RENDERED:
+            print(f"num_rendered {num_rendered}")
             raise
 
         flash_gaussian_splatting.ops.sort_gaussian(num_rendered, camera.width, camera.height, 32, 16,
@@ -105,20 +110,29 @@ def savePpm(image, path):
 
 
 if __name__ == "__main__":
-    scene_path = "D:\\gaussian-splatting\\output\\truck_improve\\point_cloud\\iteration_30000\\point_cloud.ply"
-    camera_path = "D:\\gaussian-splatting\\output\\truck_improve\\cameras.json"
+    # scene_path = "D:\\gaussian-splatting\\output\\truck_improve\\point_cloud\\iteration_30000\\point_cloud.ply"
+    # camera_path = "D:\\gaussian-splatting\\output\\truck_improve\\cameras.json"
+
+    # `truck` example
+    # workdir = "C:\\Users\\fni\\code\\gaussian-splatting\\output\\0b3fc89a-2"
+    # scene_path = f"{workdir}\\point_cloud\\iteration_30000\\point_cloud.ply"
+    # camera_path = f"{workdir}\\cameras.json"  # not used?
+
+    workdir = "C:\\Users\\fni\\code\\vasualizer_precompiled\\ramen_gs_scale_pruning_f582796646"
+    scene_path = f"{workdir}\\model.ply"
+
     device = torch.device('cuda:0')
     bg_color = torch.zeros(3, dtype=torch.float32)  # black
     MAX_NUM_RENDERED = 2 ** 24
     SORT_BUFFER_SIZE = 2 ** 30
     MAX_NUM_TILES = 2 ** 20
 
+    camera = Camera()    
     scene = Scene(device)
     scene.loadPly(scene_path)
-
-    camera = Camera()
-
     rasterizer = Rasterizer(scene, MAX_NUM_RENDERED, SORT_BUFFER_SIZE, MAX_NUM_TILES)
 
-    image = rasterizer.forward(scene, camera, bg_color)
-    savePpm(image, "C:\\Users\\csy\\Desktop\\cuda_rasterizer\\000001.ppm")
+    for i in range(10):
+        image = rasterizer.forward(scene, camera, bg_color)
+        print("")
+    savePpm(image, f"{workdir}\\000001.ppm")

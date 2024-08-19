@@ -3,7 +3,15 @@
 #endif
 
 #define GLM_FORCE_CUDA
-#include "../glm/glm.hpp"
+#include "../glm/glm.hpp"	
+
+#define CHECK_CUDART(x) do { \
+  cudaError_t res = (x); \
+  if(res != cudaSuccess) { \
+    fprintf(stderr, "CUDART: %s = %d (%s) at (%s:%d)\n", #x, res, cudaGetErrorString(res),__FILE__,__LINE__); \
+    exit(1); \
+  } \
+} while(0)
 
 constexpr uint32_t BLOCK_X = 32;
 constexpr uint32_t BLOCK_Y = 16;
@@ -557,6 +565,11 @@ void preprocess(int P,
 	int D = 3;
 	int M = 16;
 
+	cudaEvent_t start, stop;
+	CHECK_CUDART(cudaEventCreate(&start));
+	CHECK_CUDART(cudaEventCreate(&stop));
+	CHECK_CUDART(cudaEventRecord(start, 0));  // Record on default stream
+
 	preprocessCUDA<<<(P + 127) / 128, dim3(8, 4, 4)>>>(
 		P, D, M,
 		orig_points,
@@ -577,4 +590,13 @@ void preprocess(int P,
 		gaussian_keys_unsorted,
 		gaussian_values_unsorted,
 		grid);
+
+	
+	CHECK_CUDART(cudaEventRecord(stop, 0));  // Record on default stream
+	CHECK_CUDART(cudaEventSynchronize(stop));  // CPU waits here until the kernel reaches this point
+	float milliseconds = 0;
+	CHECK_CUDART(cudaEventElapsedTime(&milliseconds, start, stop));
+	printf("preprocessCUDA: %f ms \n", milliseconds);
+	CHECK_CUDART(cudaEventDestroy(start));
+	CHECK_CUDART(cudaEventDestroy(stop));
 }

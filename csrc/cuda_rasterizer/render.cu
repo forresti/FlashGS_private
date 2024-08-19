@@ -1,5 +1,14 @@
 #include <cuda_runtime.h>
 #include <stdint.h>
+#include <cstdio>
+
+#define CHECK_CUDART(x) do { \
+  cudaError_t res = (x); \
+  if(res != cudaSuccess) { \
+    fprintf(stderr, "CUDART: %s = %d (%s) at (%s:%d)\n", #x, res, cudaGetErrorString(res),__FILE__,__LINE__); \
+    exit(1); \
+  } \
+} while(0)
 
 constexpr uint32_t WARP_SIZE = 32;
 constexpr uint32_t BLOCK_X = 32;
@@ -256,10 +265,18 @@ void render(int num_rendered,
 	dim3 grid((width + BLOCK_X - 1) / BLOCK_X, (height + BLOCK_Y - 1) / BLOCK_Y, 1);
 	cudaMemsetAsync(ranges, 0, sizeof(int2) * grid.x * grid.y);
 
+	cudaEvent_t start, stop1, stop2;
+	CHECK_CUDART(cudaEventCreate(&start));
+	CHECK_CUDART(cudaEventCreate(&stop1));
+	CHECK_CUDART(cudaEventCreate(&stop2));
+	CHECK_CUDART(cudaEventRecord(start, 0));  // Record on default stream
+
 	identifyTileRanges<<<(num_rendered + 255) / 256, 256>>>(
 		num_rendered,
 		gaussian_keys_sorted,
 		(int2*)ranges);
+
+	CHECK_CUDART(cudaEventRecord(stop1, 0));  // Record on default stream
 
 	int horizontal_blocks = (width + BLOCK_X - 1) / BLOCK_X;
 	renderCUDA<<<grid, dim3(8, 4, 1)>>>(
@@ -273,4 +290,16 @@ void render(int num_rendered,
 		(float4*)conic_opacity,
 		bg_color,
 		(uchar3*)out_color);
+
+	CHECK_CUDART(cudaEventRecord(stop2, 0));  // Record on default stream
+
+	CHECK_CUDART(cudaEventSynchronize(stop2));  // CPU waits here until the kernel reaches this point
+	float milliseconds = 0;
+	CHECK_CUDART(cudaEventElapsedTime(&milliseconds, start, stop1));
+	printf("identifyTileRanges: %f ms \n", milliseconds);
+	CHECK_CUDART(cudaEventElapsedTime(&milliseconds, stop1, stop2));
+	printf("renderCUDA: %f ms \n", milliseconds);
+	CHECK_CUDART(cudaEventDestroy(start));
+	CHECK_CUDART(cudaEventDestroy(stop1));
+	CHECK_CUDART(cudaEventDestroy(stop2));
 }

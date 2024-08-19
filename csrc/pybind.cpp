@@ -1,4 +1,7 @@
 #include "ops.h"
+#include <fstream>
+#include <iostream>
+#include <string>
 
 struct VertexStorage
 {
