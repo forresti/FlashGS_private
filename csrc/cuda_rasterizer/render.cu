@@ -154,6 +154,8 @@ __global__ void renderCUDA(
 	{
 		coll_id = point_id + 2;
 	}
+	float pixBaseX = blockIdx.x * BLOCK_X + threadIdx.x * THREAD_X;
+	float pixBaseY = blockIdx.y * BLOCK_Y + threadIdx.y * THREAD_Y;
 
 	// uint2 pix = { blockIdx.x * BLOCK_X + threadIdx.x, blockIdx.y * BLOCK_Y + threadIdx.y };
 // 	uint2 pix[THREAD_Y][THREAD_X];
@@ -208,10 +210,7 @@ __global__ void renderCUDA(
 #pragma unroll
 			for (uint32_t j = 0; j < THREAD_X; j++)
 			{
-				float2 pixf = {
-					(float)(blockIdx.x * BLOCK_X + threadIdx.x * THREAD_X + j),
-					(float)(blockIdx.y * BLOCK_Y + threadIdx.y * THREAD_Y + i)
-				};
+				float2 pixf = {pixBaseX + float(j), pixBaseY + float(i)};
 				pixel_shader(C[i][j], T[i][j], pixf, xy, con_o, rgb);
 			}
 		}
@@ -254,10 +253,7 @@ __global__ void renderCUDA(
 #pragma unroll
 		for (uint32_t j = 0; j < THREAD_X; j++)
 		{
-			uint2 pix = {
-					blockIdx.x * BLOCK_X + threadIdx.x * THREAD_X + j,
-					blockIdx.y * BLOCK_Y + threadIdx.y * THREAD_Y + i
-			};
+			uint2 pix = {uint32_t(pixBaseX + float(j)), uint32_t(pixBaseY + float(i))};
 
 			write_color(out_color, bg_color, pix, width, height, C[i][j], T[i][j]);
 		}
