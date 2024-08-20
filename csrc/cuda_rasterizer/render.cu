@@ -156,31 +156,31 @@ __global__ void renderCUDA(
 	}
 
 	// uint2 pix = { blockIdx.x * BLOCK_X + threadIdx.x, blockIdx.y * BLOCK_Y + threadIdx.y };
-	uint2 pix[THREAD_Y][THREAD_X];
-#pragma unroll
-	for (uint32_t i = 0; i < THREAD_Y; i++)
-	{
-#pragma unroll
-		for (uint32_t j = 0; j < THREAD_X; j++)
-		{
-			pix[i][j] = {
-				blockIdx.x * BLOCK_X + threadIdx.x * THREAD_X + j,
-				blockIdx.y * BLOCK_Y + threadIdx.y * THREAD_Y + i
-			};
-		}
-	}
+// 	uint2 pix[THREAD_Y][THREAD_X];
+// #pragma unroll
+// 	for (uint32_t i = 0; i < THREAD_Y; i++)
+// 	{
+// #pragma unroll
+// 		for (uint32_t j = 0; j < THREAD_X; j++)
+// 		{
+// 			pix[i][j] = {
+// 				blockIdx.x * BLOCK_X + threadIdx.x * THREAD_X + j,
+// 				blockIdx.y * BLOCK_Y + threadIdx.y * THREAD_Y + i
+// 			};
+// 		}
+// 	}
 
 	// float2 pixf = { (float)pix.x, (float)pix.y };
-	float2 pixf[THREAD_Y][THREAD_X];
-#pragma unroll
-	for (uint32_t i = 0; i < THREAD_Y; i++)
-	{
-#pragma unroll
-		for (uint32_t j = 0; j < THREAD_X; j++)
-		{
-			pixf[i][j] = { (float)pix[i][j].x, (float)pix[i][j].y };
-		}
-	}
+// 	float2 pixf[THREAD_Y][THREAD_X];
+// #pragma unroll
+// 	for (uint32_t i = 0; i < THREAD_Y; i++)
+// 	{
+// #pragma unroll
+// 		for (uint32_t j = 0; j < THREAD_X; j++)
+// 		{
+// 			pixf[i][j] = { (float)pix[i][j].x, (float)pix[i][j].y };
+// 		}
+// 	}
 
 	float T[THREAD_Y][THREAD_X];
 #pragma unroll
@@ -208,7 +208,11 @@ __global__ void renderCUDA(
 #pragma unroll
 			for (uint32_t j = 0; j < THREAD_X; j++)
 			{
-				pixel_shader(C[i][j], T[i][j], pixf[i][j], xy, con_o, rgb);
+				float2 pixf = {
+					(float)(blockIdx.x * BLOCK_X + threadIdx.x * THREAD_X + j),
+					(float)(blockIdx.y * BLOCK_Y + threadIdx.y * THREAD_Y + i)
+				};
+				pixel_shader(C[i][j], T[i][j], pixf, xy, con_o, rgb);
 			}
 		}
 
@@ -250,7 +254,12 @@ __global__ void renderCUDA(
 #pragma unroll
 		for (uint32_t j = 0; j < THREAD_X; j++)
 		{
-			write_color(out_color, bg_color, pix[i][j], width, height, C[i][j], T[i][j]);
+			uint2 pix = {
+					blockIdx.x * BLOCK_X + threadIdx.x * THREAD_X + j,
+					blockIdx.y * BLOCK_Y + threadIdx.y * THREAD_Y + i
+			};
+
+			write_color(out_color, bg_color, pix, width, height, C[i][j], T[i][j]);
 		}
 	}
 }
