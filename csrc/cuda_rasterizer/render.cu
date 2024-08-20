@@ -53,10 +53,11 @@ __forceinline__ __device__ void pixel_shader(float3& C, float& T, float2 pixf, f
 	asm volatile("ex2.approx.ftz.f32 %0, %1;" : "=f"(alpha) : "f"(power));
 	"\"";
 	//alpha = min(0.99f, alpha);
-	C.x += rgb.x * (alpha * T);
-	C.y += rgb.y * (alpha * T);
-	C.z += rgb.z * (alpha * T);
-	T -= alpha * T;
+	float alpha_times_T = alpha*T;
+	C.x += rgb.x * alpha_times_T;
+	C.y += rgb.y * alpha_times_T;
+	C.z += rgb.z * alpha_times_T;
+	T -= alpha_times_T;
 }
 
 __forceinline__ __device__ uint8_t encode(float x)

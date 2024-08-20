@@ -16,7 +16,7 @@ ext_modules = []
 
 # Compiler flags.
 CXX_FLAGS = ["-g", "-O1", "-std=c++11"]
-NVCC_FLAGS = ["-O1"]
+NVCC_FLAGS = ["-O1", "-lineinfo"]
 
 
 def glob(pattern: str):
