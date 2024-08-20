@@ -50,7 +50,11 @@ __forceinline__ __device__ void pixel_shader(float3& C, float& T, float2 pixf, f
 	//float power = -0.5f * (con_o.x * d.x * d.x + con_o.z * d.y * d.y) - con_o.y * d.x * d.y;
 	float power = con_o.w + con_o.x * d.x * d.x + con_o.z * d.y * d.y + con_o.y * d.x * d.y;
 	float alpha;
-	asm volatile("ex2.approx.ftz.f32 %0, %1;" : "=f"(alpha) : "f"(power));
+
+	const float a = 0.43, b = 0.9;
+    alpha = max(a * power + b, 0.0f);
+
+	// asm volatile("ex2.approx.ftz.f32 %0, %1;" : "=f"(alpha) : "f"(power));
 	"\"";
 	//alpha = min(0.99f, alpha);
 	float alpha_times_T = alpha*T;
