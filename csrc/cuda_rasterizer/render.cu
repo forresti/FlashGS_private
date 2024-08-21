@@ -112,15 +112,15 @@ __global__ void renderCUDA(
 		break;
 	case 16:
 		data = &features->x;
-		scale = 3;
+		scale = 4;
 		break;
 	case 17:
 		data = &features->y;
-		scale = 3;
+		scale = 4;
 		break;
 	case 18:
 		data = &features->z;
-		scale = 3;
+		scale = 4;
 		break;
 	case 24:
 		data = &conic_opacity->x;

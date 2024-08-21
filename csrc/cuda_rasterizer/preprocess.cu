@@ -512,6 +512,7 @@ __global__ void preprocessCUDA(int P, int D, int M,
 			glm::vec3 color = computeColorFromSH(idx_vec, D, M, (glm::vec3*)orig_points, cam_pos, shs, nullptr);
 			float4 color_float4 = make_float4(color.x, color.y, color.z, 0.0f);
 			rgb[idx_vec] = color_float4;
+
 		}
 		depths[idx_vec] = p_view.z;
 		points_xy[idx_vec] = point_xy;
