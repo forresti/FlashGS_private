@@ -66,7 +66,7 @@ class Rasterizer:
         # 9*4byte
         self.points_xy = torch.empty((scene.num_vertex, 2), device=scene.device, dtype=torch.float32)
         self.depths = torch.empty(scene.num_vertex, device=scene.device, dtype=torch.float32)
-        self.rgb = torch.empty((scene.num_vertex, 3), device=scene.device, dtype=torch.float32)
+        self.rgb = torch.empty((scene.num_vertex, 4), device=scene.device, dtype=torch.float32)
         self.conic_opacity = torch.empty((scene.num_vertex, 4), device=scene.device, dtype=torch.float32)
 
     # 前向传播（应用层封装）

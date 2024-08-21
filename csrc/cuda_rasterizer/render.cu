@@ -86,7 +86,7 @@ __global__ void renderCUDA(
 	const uint32_t* __restrict__ point_list,
 	int width, int height, int horizontal_blocks,
 	const float2* __restrict__ points_xy_image,
-	const float3* __restrict__ features,
+	const float4* __restrict__ features,
 	const float* __restrict__ depths,
 	const float4* __restrict__ conic_opacity,
 	float3 bg_color,
@@ -147,7 +147,8 @@ __global__ void renderCUDA(
 	int point_id = range.x;
 	int coll_id = point_list[point_id];
 	float2 xy = points_xy_image[coll_id];
-	float3 rgb = features[coll_id];
+	float4 rgb_tmp = features[coll_id];
+	float3 rgb = make_float3(rgb_tmp.x, rgb_tmp.y, rgb_tmp.z);
 	float4 con_o = conic_opacity[coll_id];
 	coll_id = point_list[point_id + 1];
 	if (lane_id == 0)
@@ -291,7 +292,7 @@ void render(int num_rendered,
 		width, height,
 		horizontal_blocks,
 		(float2*)points_xy,
-		(float3*)rgb,
+		(float4*)rgb,
 		depths,
 		(float4*)conic_opacity,
 		bg_color,

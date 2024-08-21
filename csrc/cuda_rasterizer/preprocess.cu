@@ -328,7 +328,7 @@ __global__ void preprocessCUDA(int P, int D, int M,
 	float2* points_xy,
 	float* depths,
 	float* cov3Ds,
-	glm::vec3* rgb,
+	float4* rgb,
 	float4* conic_opacity,
 	int* curr_offset,
 	uint64_t* gaussian_keys_unsorted,   //用于存储键值对的数组 /64
@@ -510,7 +510,8 @@ __global__ void preprocessCUDA(int P, int D, int M,
 		if (any_valid & (1 << lane))
 		{
 			glm::vec3 color = computeColorFromSH(idx_vec, D, M, (glm::vec3*)orig_points, cam_pos, shs, nullptr);
-			rgb[idx_vec] = color;
+			float4 color_float4 = make_float4(color.x, color.y, color.z, 0.0f);
+			rgb[idx_vec] = color_float4;
 		}
 		depths[idx_vec] = p_view.z;
 		points_xy[idx_vec] = point_xy;
@@ -584,7 +585,7 @@ void preprocess(int P,
 		(float2*)points_xy,
 		depths,
 		cov3Ds,
-		(glm::vec3*)rgb,
+		(float4*)rgb,
 		(float4*)conic_opacity,
 		curr_offset,
 		gaussian_keys_unsorted,
