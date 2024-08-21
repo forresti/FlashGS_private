@@ -44,7 +44,7 @@ __global__ void identifyTileRanges(int L, uint64_t* point_list_keys, int2* range
 		ranges[currtile].y = L;
 }
 
-__forceinline__ __device__ void pixel_shader(float3& C, float& T, float2 pixf, float2 xy, float4 con_o, float3 rgb)
+__forceinline__ __device__ void pixel_shader(float3& C, float& T, float2 pixf, float2 xy, float4 con_o, float4 rgb)
 {
 	float2 d = { xy.x - pixf.x, xy.y - pixf.y };
 	//float power = -0.5f * (con_o.x * d.x * d.x + con_o.z * d.y * d.y) - con_o.y * d.x * d.y;
@@ -96,50 +96,50 @@ __global__ void renderCUDA(
 	uint32_t lane_id = threadIdx.y * blockDim.x + threadIdx.x;
 	const void* data = nullptr;
 	int scale = 0;
-	switch (lane_id)
-	{
-	case 0:
-		data = point_list;
-		scale = 1;
-		break;
-	case 8:
-		data = &points_xy_image->x;
-		scale = 2;
-		break;
-	case 9:
-		data = &points_xy_image->y;
-		scale = 2;
-		break;
-	case 16:
-		data = &features->x;
-		scale = 4;
-		break;
-	case 17:
-		data = &features->y;
-		scale = 4;
-		break;
-	case 18:
-		data = &features->z;
-		scale = 4;
-		break;
-	case 24:
-		data = &conic_opacity->x;
-		scale = 4;
-		break;
-	case 25:
-		data = &conic_opacity->y;
-		scale = 4;
-		break;
-	case 26:
-		data = &conic_opacity->z;
-		scale = 4;
-		break;
-	case 27:
-		data = &conic_opacity->w;
-		scale = 4;
-		break;
-	}
-	scale *= 4; // sizeof(int), sizeof(float)
+	// switch (lane_id)
+	// {
+	// case 0:
+	// 	data = point_list;
+	// 	scale = 1;
+	// 	break;
+	// case 8:
+	// 	data = &points_xy_image->x;
+	// 	scale = 2;
+	// 	break;
+	// case 9:
+	// 	data = &points_xy_image->y;
+	// 	scale = 2;
+	// 	break;
+	// case 16:
+	// 	data = &features->x;
+	// 	scale = 4;
+	// 	break;
+	// case 17:
+	// 	data = &features->y;
+	// 	scale = 4;
+	// 	break;
+	// case 18:
+	// 	data = &features->z;
+	// 	scale = 4;
+	// 	break;
+	// case 24:
+	// 	data = &conic_opacity->x;
+	// 	scale = 4;
+	// 	break;
+	// case 25:
+	// 	data = &conic_opacity->y;
+	// 	scale = 4;
+	// 	break;
+	// case 26:
+	// 	data = &conic_opacity->z;
+	// 	scale = 4;
+	// 	break;
+	// case 27:
+	// 	data = &conic_opacity->w;
+	// 	scale = 4;
+	// 	break;
+	// }
+	// scale *= 4; // sizeof(int), sizeof(float)
 	if (range.x >= range.y)
 	{
 		return;
@@ -147,8 +147,7 @@ __global__ void renderCUDA(
 	int point_id = range.x;
 	int coll_id = point_list[point_id];
 	float2 xy = points_xy_image[coll_id];
-	float4 rgb_tmp = features[coll_id];
-	float3 rgb = make_float3(rgb_tmp.x, rgb_tmp.y, rgb_tmp.z);
+	float4 rgb = features[coll_id];
 	float4 con_o = conic_opacity[coll_id];
 	coll_id = point_list[point_id + 1];
 	if (lane_id == 0)
@@ -197,13 +196,14 @@ __global__ void renderCUDA(
 	}
 	float3 C[THREAD_Y][THREAD_X] = { 0.0f };
 	bool done = true;
-	float buf;
-	coll_id *= scale;
+	// float buf;
+	// coll_id *= scale;
+	int idx = 0;
 	do {
-		if (data != nullptr)
-		{
-			buf = *reinterpret_cast<const float*>(reinterpret_cast<const char*>(data) + coll_id);
-		}
+		// if (data != nullptr)
+		// {
+		// 	buf = *reinterpret_cast<const float*>(reinterpret_cast<const char*>(data) + coll_id);
+		// }
 
 #pragma unroll
 		for (uint32_t i = 0; i < THREAD_Y; i++)
@@ -226,27 +226,33 @@ __global__ void renderCUDA(
 				done = done && T[i][j] < 0.0001f;
 			}
 		}
-		coll_id = __shfl_sync(~0, __float_as_uint(buf), 0);
-		if (lane_id == 0)
-		{
-			coll_id = point_id + 3;
-		}
-		xy = {
-			__shfl_sync(~0, buf, 8),
-			__shfl_sync(~0, buf, 9)
-		};
-		rgb = {
-			__shfl_sync(~0, buf, 16),
-			__shfl_sync(~0, buf, 17),
-			__shfl_sync(~0, buf, 18)
-		};
-		con_o = {
-			__shfl_sync(~0, buf, 24),
-			__shfl_sync(~0, buf, 25),
-			__shfl_sync(~0, buf, 26),
-			__shfl_sync(~0, buf, 27)
-		};
-		coll_id *= scale;
+		xy = points_xy_image[coll_id];
+		rgb = features[coll_id];
+		con_o = conic_opacity[coll_id];
+		coll_id = point_list[idx + 1];
+
+		// coll_id = __shfl_sync(~0, __float_as_uint(buf), 0);
+		// if (lane_id == 0)
+		// {
+		// 	coll_id = point_id + 3;
+		// }
+		// xy = {
+		// 	__shfl_sync(~0, buf, 8),
+		// 	__shfl_sync(~0, buf, 9)
+		// };
+		// rgb = {
+		// 	__shfl_sync(~0, buf, 16),
+		// 	__shfl_sync(~0, buf, 17),
+		// 	__shfl_sync(~0, buf, 18)
+		// };
+		// con_o = {
+		// 	__shfl_sync(~0, buf, 24),
+		// 	__shfl_sync(~0, buf, 25),
+		// 	__shfl_sync(~0, buf, 26),
+		// 	__shfl_sync(~0, buf, 27)
+		// };
+		// coll_id *= scale;
+		idx++;
 	} while (__any_sync(~0, ++point_id < range.y && !done));
 #pragma unroll
 	for (uint32_t i = 0; i < THREAD_Y; i++)
